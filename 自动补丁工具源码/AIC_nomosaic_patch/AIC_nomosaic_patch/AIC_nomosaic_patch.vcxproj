@@ -141,11 +141,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AIC_nomosaic_patch.h" />
+    <ClInclude Include="CheatWindow.h" />
+    <ClInclude Include="debug_config.h" />
     <ClInclude Include="define.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="NET_SDK.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AIC_nomosaic_patch.cpp" />

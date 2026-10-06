@@ -10,13 +10,13 @@ bool IsDotNetInstalled() {
     DWORD dwData = 0;
     DWORD dwSize = sizeof(DWORD);
 
-    // æŸ¥è¯¢ .NET Framework 4.5 åŠä»¥ä¸Š
+    // ²éÑ¯ .NET Framework 4.5 ¼°ÒÔÉÏ
     if (RegOpenKeyEx(HKEY_LOCAL_MACHINE,
         L"SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full",
         0, KEY_READ, &hKey) == ERROR_SUCCESS) {
         if (RegQueryValueEx(hKey, L"Release", NULL, &dwType, (LPBYTE)&dwData, &dwSize) == ERROR_SUCCESS) {
             RegCloseKey(hKey);
-            // dwData >= 378389 è¡¨ç¤ºå®‰è£…äº† .NET Framework 4.5+
+            // dwData >= 378389 ±íÊ¾°²×°ÁË .NET Framework 4.5+
             return dwData >= 378389;
         }
         RegCloseKey(hKey);
@@ -47,19 +47,19 @@ bool RunCommandHidden(const std::wstring& cmd)
     STARTUPINFOW si = { sizeof(si) };
     PROCESS_INFORMATION pi;
     si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_HIDE; // éšè—çª—å£
+    si.wShowWindow = SW_HIDE; // Òş²Ø´°¿Ú
 
-    // CreateProcess éœ€è¦å‘½ä»¤è¡Œå¯å†™
+    // CreateProcess ĞèÒªÃüÁîĞĞ¿ÉĞ´
     wchar_t* cmdLine = new wchar_t[cmd.size() + 1];
     wcscpy_s(cmdLine, cmd.size() + 1, cmd.c_str());
 
     bool result = CreateProcessW(
-        NULL,      // å¯æ‰§è¡Œæ–‡ä»¶åä¸ºç©ºï¼Œå‘½ä»¤è¡Œé‡ŒæŒ‡å®š
-        cmdLine,   // å‘½ä»¤è¡Œ
-        NULL, NULL,// é»˜è®¤å®‰å…¨å±æ€§
-        FALSE,     // ä¸ç»§æ‰¿å¥æŸ„
-        0,         // é»˜è®¤åˆ›å»ºæ ‡å¿—
-        NULL, NULL,// é»˜è®¤ç¯å¢ƒå’Œç›®å½•
+        NULL,      // ¿ÉÖ´ĞĞÎÄ¼şÃûÎª¿Õ£¬ÃüÁîĞĞÀïÖ¸¶¨
+        cmdLine,   // ÃüÁîĞĞ
+        NULL, NULL,// Ä¬ÈÏ°²È«ÊôĞÔ
+        FALSE,     // ²»¼Ì³Ğ¾ä±ú
+        0,         // Ä¬ÈÏ´´½¨±êÖ¾
+        NULL, NULL,// Ä¬ÈÏ»·¾³ºÍÄ¿Â¼
         &si, &pi
     );
 
@@ -101,9 +101,29 @@ std::string RunCmd(const std::wstring& cmd)
     delete[] cmdLine;
     CloseHandle(hWrite);
 
-    if (!result) {
-        CloseHandle(hRead);
-        return "Failed";
+    if (!result)
+    {
+        DWORD err = GetLastError();
+        wchar_t* msg = nullptr;
+        FormatMessageW(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER |
+            FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL,
+            err,
+            0,
+            (LPWSTR)&msg,
+            0,
+            NULL
+        );
+        std::wstring wmsg = msg ? msg : L"Unknown error";
+        LocalFree(msg);
+        // wchar_t ×ª string
+        std::string errorMsg(wmsg.begin(), wmsg.end());
+        return "Failed.´´½¨dnlibÃüÁîĞĞ½ø³ÌÊ§°Ü£¬´íÎóĞÅÏ¢£º ("
+            + std::to_string(err)
+            + "): "
+            + errorMsg;
     }
 
     std::string output;
@@ -120,7 +140,7 @@ std::string RunCmd(const std::wstring& cmd)
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 
-    return output; // è¿™é‡Œå°±åŒ…å« TRUE / notfound / repeat
+    return output; // ÕâÀï¾Í°üº¬ TRUE / notfound / repeat
 }
 #include <vector>
 #include <string>
@@ -128,11 +148,11 @@ std::string RunCmd(const std::wstring& cmd)
 
 bool IsFileInUse(const std::wstring& filePath)
 {
-    // å°è¯•ä»¥ç‹¬å æ–¹å¼æ‰“å¼€æ–‡ä»¶
+    // ³¢ÊÔÒÔ¶ÀÕ¼·½Ê½´ò¿ªÎÄ¼ş
     HANDLE hFile = CreateFileW(
         filePath.c_str(),
-        GENERIC_READ | GENERIC_WRITE,  // å°è¯•è¯»å†™
-        0,                             // ä¸å…±äº«
+        GENERIC_READ | GENERIC_WRITE,  // ³¢ÊÔ¶ÁĞ´
+        0,                             // ²»¹²Ïí
         NULL,
         OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL,
@@ -144,12 +164,12 @@ bool IsFileInUse(const std::wstring& filePath)
         DWORD err = GetLastError();
         if (err == ERROR_SHARING_VIOLATION || err == ERROR_LOCK_VIOLATION)
         {
-            return true; // æ–‡ä»¶è¢«å ç”¨
+            return true; // ÎÄ¼ş±»Õ¼ÓÃ
         }
-        return false; // æ–‡ä»¶ä¸å­˜åœ¨æˆ–å…¶ä»–é”™è¯¯
+        return false; // ÎÄ¼ş²»´æÔÚ»òÆäËû´íÎó
     }
 
-    // æ–‡ä»¶å¯ä»¥æ‰“å¼€ï¼Œè¯´æ˜æ²¡è¢«å ç”¨
+    // ÎÄ¼ş¿ÉÒÔ´ò¿ª£¬ËµÃ÷Ã»±»Õ¼ÓÃ
     CloseHandle(hFile);
     return false;
 }
@@ -157,7 +177,7 @@ bool patch(const std::wstring& cmdPath,
     const std::wstring& dllPath,bool aaa)
 {
     if (IsFileInUse(AssemblyDllPath)) {
-        MessageBox(hWnd, L"æ¸¸æˆæ–‡ä»¶è¢«å ç”¨ï¼Œè¯·å…ˆè§£é™¤å ç”¨ã€‚", L"æç¤º", MB_OK);
+        MessageBox(hWnd, L"ÓÎÏ·ÎÄ¼ş±»Õ¼ÓÃ£¬ÇëÏÈ½â³ıÕ¼ÓÃ¡£", L"ÌáÊ¾", MB_OK);
         return false;
     }
         
@@ -165,12 +185,12 @@ bool patch(const std::wstring& cmdPath,
 
     
     HWND hButton;
-    if (aaa == false) hButton = GetDlgItem(hWnd, IDM_test); // è·å–æŒ‰é’®å¥æŸ„
-    else hButton = GetDlgItem(hWnd, IDM_test2); // è·å–æŒ‰é’®å¥æŸ„
-    //SetWindowTextW(hButton, L"æ­£åœ¨åç¼–è¯‘...");
+    if (aaa == false) hButton = GetDlgItem(hWnd, IDM_test); // »ñÈ¡°´Å¥¾ä±ú
+    else hButton = GetDlgItem(hWnd, IDM_test2); // »ñÈ¡°´Å¥¾ä±ú
+    //SetWindowTextW(hButton, L"ÕıÔÚ·´±àÒë...");
 
     if (aaa == false) {
-        SetWindowTextW(hButton, L"æ­£åœ¨å®‰è£…...");
+        SetWindowTextW(hButton, L"ÕıÔÚ°²×°...");
         std::wstring cmd =
             L"\"" + cmdPath + L"\"" + L" -m false" +
             L" -dll \"" + dllPath + L"\"" + L" -out \"" + GamePath + L"\\AliceInCradle_Data\\Managed\\assemblycsharptemp.dll\"";
@@ -181,29 +201,29 @@ bool patch(const std::wstring& cmdPath,
 
         }
         else if(result.find("notfound") != std::string::npos) {
-            MessageBox(hWnd, L"æ¸¸æˆæ–‡ä»¶å¼‚å¸¸ï¼æ‰¾ä¸åˆ°è¡¥ä¸å®‰è£…ä½ç½®ã€‚", L"é”™è¯¯", MB_OK | MB_ICONHAND);
+            MessageBox(hWnd, L"ÓÎÏ·ÎÄ¼şÒì³££¡ÕÒ²»µ½²¹¶¡°²×°Î»ÖÃ¡£", L"´íÎó", MB_OK | MB_ICONHAND);
             return false;
         }
         else if (result.find("repeat") != std::string::npos) {
-            MessageBox(hWnd, L"è¡¥ä¸å·²å®‰è£…ï¼Œè¯·å‹¿é‡å¤å®‰è£…ï¼", L"é”™è¯¯", MB_OK | MB_ICONHAND);
+            MessageBox(hWnd, L"²¹¶¡ÒÑ°²×°£¬ÇëÎğÖØ¸´°²×°£¡", L"´íÎó", MB_OK | MB_ICONHAND);
             return false;
         }
         else {
-            MessageBoxA(NULL, result.c_str(), "é”™è¯¯", MB_OK | MB_ICONHAND);
+            MessageBoxA(NULL, result.c_str(), "´íÎó", MB_OK | MB_ICONHAND);
             return false;
         }
         
         std::wstring aaaaa = GamePath + L"\\AliceInCradle_Data\\Managed\\assemblycsharptemp.dll";
         HANDLE hFile = CreateFileW(aaaaa.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (hFile == INVALID_HANDLE_VALUE) {
-            MessageBox(hWnd, L"è¡¥ä¸ç”Ÿæˆå¤±è´¥\né”™è¯¯ä¿¡æ¯ï¼šè¡¥ä¸æ–‡ä»¶æœªç”Ÿæˆ", L"é”™è¯¯", MB_OK | MB_ICONHAND);
-            return false; // æ‰“ä¸å¼€æ–‡ä»¶
+            MessageBox(hWnd, L"²¹¶¡Éú³ÉÊ§°Ü\n´íÎóĞÅÏ¢£º²¹¶¡ÎÄ¼şÎ´Éú³É", L"´íÎó", MB_OK | MB_ICONHAND);
+            return false; // ´ò²»¿ªÎÄ¼ş
         }
         LARGE_INTEGER size;
         bool ok = GetFileSizeEx(hFile, &size);
         CloseHandle(hFile);
         if (!ok) {
-            MessageBox(hWnd, L"è¡¥ä¸ç”Ÿæˆå¤±è´¥\né”™è¯¯ä¿¡æ¯ï¼šæ— æ³•è·å–è¡¥ä¸å¤§å°", L"é”™è¯¯", MB_OK | MB_ICONHAND);
+            MessageBox(hWnd, L"²¹¶¡Éú³ÉÊ§°Ü\n´íÎóĞÅÏ¢£ºÎŞ·¨»ñÈ¡²¹¶¡´óĞ¡", L"´íÎó", MB_OK | MB_ICONHAND);
             return false;
         }
         if (size.QuadPart > 0.75 * 1024 * 1024) {
@@ -212,19 +232,19 @@ bool patch(const std::wstring& cmdPath,
                 return true;
             }
             else {
-                //std::wcout << L"å¤åˆ¶å¤±è´¥ï¼Œé”™è¯¯ç ï¼š" << GetLastError() << L"\n";
+                //std::wcout << L"¸´ÖÆÊ§°Ü£¬´íÎóÂë£º" << GetLastError() << L"\n";
                 DeleteFile(aaaaa.c_str());
-                MessageBox(hWnd, L"å†™å…¥å¤±è´¥ã€‚\né”™è¯¯ä¿¡æ¯ï¼šè¡¥ä¸å†™å…¥æ¸¸æˆå¤±è´¥", L"é”™è¯¯", MB_OK | MB_ICONHAND);
+                MessageBox(hWnd, L"Ğ´ÈëÊ§°Ü¡£\n´íÎóĞÅÏ¢£º²¹¶¡Ğ´ÈëÓÎÏ·Ê§°Ü", L"´íÎó", MB_OK | MB_ICONHAND);
                 return false;
             }
             
         }
         DeleteFile(aaaaa.c_str());
-        MessageBox(hWnd, L"è¡¥ä¸ç”Ÿæˆå¤±è´¥\né”™è¯¯ä¿¡æ¯ï¼šè¡¥ä¸æ–‡ä»¶å¤§å°é”™è¯¯ï¼Œè¯·è”ç³»è¡¥ä¸ä½œè€…", L"é”™è¯¯", MB_OK | MB_ICONHAND);
+        MessageBox(hWnd, L"²¹¶¡Éú³ÉÊ§°Ü\n´íÎóĞÅÏ¢£º²¹¶¡ÎÄ¼ş´óĞ¡´íÎó£¬ÇëÁªÏµ²¹¶¡×÷Õß", L"´íÎó", MB_OK | MB_ICONHAND);
         return false;
     }
     else {
-        SetWindowTextW(hButton, L"æ­£åœ¨å¸è½½...");
+        SetWindowTextW(hButton, L"ÕıÔÚĞ¶ÔØ...");
         std::wstring cmd =
             L"\"" + cmdPath + L"\"" + L" -m true" +
             L" -dll \"" + dllPath + L"\"" + L" -out \"" + GamePath + L"\\AliceInCradle_Data\\Managed\\assemblycsharptemp.dll\"";
@@ -235,30 +255,30 @@ bool patch(const std::wstring& cmdPath,
 
         }
         else if (result.find("notfound") != std::string::npos) {
-            MessageBox(hWnd, L"æ¸¸æˆæ–‡ä»¶å¼‚å¸¸ï¼æ‰¾ä¸åˆ°è¡¥ä¸å®‰è£…ä½ç½®ã€‚", L"é”™è¯¯", MB_OK | MB_ICONHAND);
+            MessageBox(hWnd, L"ÓÎÏ·ÎÄ¼şÒì³££¡ÕÒ²»µ½²¹¶¡°²×°Î»ÖÃ¡£", L"´íÎó", MB_OK | MB_ICONHAND);
             return false;
         }
         else if (result.find("repeat") != std::string::npos) {
-            MessageBox(hWnd, L"æœªæ‰¾åˆ°å·²å®‰è£…çš„è¡¥ä¸ï¼", L"é”™è¯¯", MB_OK | MB_ICONHAND);
+            MessageBox(hWnd, L"Î´ÕÒµ½ÒÑ°²×°µÄ²¹¶¡£¡", L"´íÎó", MB_OK | MB_ICONHAND);
             return false;
         }
         else {
-            result = "å‘ç”ŸæœªçŸ¥é”™è¯¯ï¼Œè¯·è”ç³»è¡¥ä¸ä½œè€…\né”™è¯¯ä¿¡æ¯ï¼š" + result;
-            MessageBoxA(NULL, result.c_str(), "é”™è¯¯", MB_OK | MB_ICONHAND);
+            result = "·¢ÉúÎ´Öª´íÎó£¬ÇëÁªÏµ²¹¶¡×÷Õß\n´íÎóĞÅÏ¢£º" + result;
+            MessageBoxA(NULL, result.c_str(), "´íÎó", MB_OK | MB_ICONHAND);
             return false;
         }
 
         std::wstring aaaaa = GamePath + L"\\AliceInCradle_Data\\Managed\\assemblycsharptemp.dll";
         HANDLE hFile = CreateFileW(aaaaa.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (hFile == INVALID_HANDLE_VALUE) {
-            MessageBox(hWnd, L"è¡¥ä¸ç”Ÿæˆå¤±è´¥\né”™è¯¯ä¿¡æ¯ï¼šè¡¥ä¸æ–‡ä»¶æœªç”Ÿæˆ", L"é”™è¯¯", MB_OK | MB_ICONHAND);
-            return false; // æ‰“ä¸å¼€æ–‡ä»¶
+            MessageBox(hWnd, L"²¹¶¡Éú³ÉÊ§°Ü\n´íÎóĞÅÏ¢£º²¹¶¡ÎÄ¼şÎ´Éú³É", L"´íÎó", MB_OK | MB_ICONHAND);
+            return false; // ´ò²»¿ªÎÄ¼ş
         }
         LARGE_INTEGER size;
         bool ok = GetFileSizeEx(hFile, &size);
         CloseHandle(hFile);
         if (!ok) {
-            MessageBox(hWnd, L"è¡¥ä¸ç”Ÿæˆå¤±è´¥\né”™è¯¯ä¿¡æ¯ï¼šæ— æ³•è·å–è¡¥ä¸å¤§å°", L"é”™è¯¯", MB_OK | MB_ICONHAND);
+            MessageBox(hWnd, L"²¹¶¡Éú³ÉÊ§°Ü\n´íÎóĞÅÏ¢£ºÎŞ·¨»ñÈ¡²¹¶¡´óĞ¡", L"´íÎó", MB_OK | MB_ICONHAND);
             return false;
         }
         if (size.QuadPart > 0.75 * 1024 * 1024) {
@@ -267,15 +287,15 @@ bool patch(const std::wstring& cmdPath,
                 return true;
             }
             else {
-                //std::wcout << L"å¤åˆ¶å¤±è´¥ï¼Œé”™è¯¯ç ï¼š" << GetLastError() << L"\n";
+                //std::wcout << L"¸´ÖÆÊ§°Ü£¬´íÎóÂë£º" << GetLastError() << L"\n";
                 DeleteFile(aaaaa.c_str());
-                MessageBox(hWnd, L"å†™å…¥å¤±è´¥ã€‚\né”™è¯¯ä¿¡æ¯ï¼šè¡¥ä¸å†™å…¥æ¸¸æˆå¤±è´¥", L"é”™è¯¯", MB_OK | MB_ICONHAND);
+                MessageBox(hWnd, L"Ğ´ÈëÊ§°Ü¡£\n´íÎóĞÅÏ¢£º²¹¶¡Ğ´ÈëÓÎÏ·Ê§°Ü", L"´íÎó", MB_OK | MB_ICONHAND);
                 return false;
             }
 
         }
         DeleteFile(aaaaa.c_str());
-        MessageBox(hWnd, L"è¡¥ä¸ç”Ÿæˆå¤±è´¥\né”™è¯¯ä¿¡æ¯ï¼šè¡¥ä¸æ–‡ä»¶å¤§å°é”™è¯¯ï¼Œè¯·è”ç³»è¡¥ä¸ä½œè€…", L"é”™è¯¯", MB_OK | MB_ICONHAND);
+        MessageBox(hWnd, L"²¹¶¡Éú³ÉÊ§°Ü\n´íÎóĞÅÏ¢£º²¹¶¡ÎÄ¼ş´óĞ¡´íÎó£¬ÇëÁªÏµ²¹¶¡×÷Õß", L"´íÎó", MB_OK | MB_ICONHAND);
         return false;
     }
 
@@ -291,18 +311,18 @@ std::wstring OpenExeFileDialog()
     ofn.hwndOwner = hWnd;
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = MAX_PATH;
-    ofn.lpstrFilter = L"å¯æ‰§è¡Œæ–‡ä»¶ (*.exe)\0*.exe\0";
+    ofn.lpstrFilter = L"¿ÉÖ´ĞĞÎÄ¼ş (*.exe)\0*.exe\0";
     ofn.nFilterIndex = 1;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-    ofn.lpstrTitle = L"è¯·é€‰æ‹©æ¸¸æˆä¸»ç¨‹åº";
+    ofn.lpstrTitle = L"ÇëÑ¡ÔñÓÎÏ·Ö÷³ÌĞò";
     if (GetOpenFileNameW(&ofn))
     {
-        // ç”¨æˆ·é€‰æ‹©äº†æ–‡ä»¶ï¼Œè¿”å›è·¯å¾„
+        // ÓÃ»§Ñ¡ÔñÁËÎÄ¼ş£¬·µ»ØÂ·¾¶
         return std::wstring(szFile);
     }
     else
     {
-        // ç”¨æˆ·å–æ¶ˆæˆ–å‡ºé”™ï¼Œè¿”å›ç©ºå­—ç¬¦ä¸²
+        // ÓÃ»§È¡Ïû»ò³ö´í£¬·µ»Ø¿Õ×Ö·û´®
         return L"";
     }
 }
@@ -310,49 +330,26 @@ std::wstring GetExeFolder(const std::wstring& exePath)
 {
     size_t pos = exePath.find_last_of(L"\\/");
     if (pos != std::wstring::npos)
-        return exePath.substr(0, pos); // è¿”å›ç›®å½•
+        return exePath.substr(0, pos); // ·µ»ØÄ¿Â¼
     else
-        return L""; // æ²¡æœ‰çˆ¶ç›®å½•
+        return L""; // Ã»ÓĞ¸¸Ä¿Â¼
 }
 bool CheckAssemblyDll(const std::wstring& baseDir)
 {
-    // æ„é€  DLL è·¯å¾„
+    // ¹¹Ôì DLL Â·¾¶
     std::wstring dllPath = baseDir + L"\\AliceInCradle_Data\\Managed\\Assembly-CSharp.dll";
 
     DWORD attrs = GetFileAttributesW(dllPath.c_str());
     if (attrs == INVALID_FILE_ATTRIBUTES)
-        return false; // æ–‡ä»¶ä¸å­˜åœ¨æˆ–è·¯å¾„é”™è¯¯
+        return false; // ÎÄ¼ş²»´æÔÚ»òÂ·¾¶´íÎó
 
     if (attrs & FILE_ATTRIBUTE_DIRECTORY)
-        return false; // æ˜¯ç›®å½•ï¼Œä¸æ˜¯æ–‡ä»¶
+        return false; // ÊÇÄ¿Â¼£¬²»ÊÇÎÄ¼ş
 
-    return true; // æ–‡ä»¶å­˜åœ¨
+    return true; // ÎÄ¼ş´æÔÚ
 }
-std::wstring GetVer(const std::wstring& folderPath)
-{
-    // æ‰¾åˆ°æœ€åä¸€ä¸ªæ–œæ ï¼Œå–æœ€åçš„æ–‡ä»¶å¤¹å
-    size_t lastSlash = folderPath.find_last_of(L"\\/");
-    std::wstring folderName;
-    if (lastSlash != std::wstring::npos)
-        folderName = folderPath.substr(lastSlash + 1);
-    else
-        folderName = folderPath; // æ²¡æœ‰æ–œæ ï¼Œæ•´ä¸ªå­—ç¬¦ä¸²å°±æ˜¯æ–‡ä»¶å¤¹å
 
-    // ç»Ÿè®¡ä¸‹åˆ’çº¿æ•°é‡
-    size_t firstUnderscore = folderName.find(L'_');
-    if (firstUnderscore == std::wstring::npos)
-        return L"æœªçŸ¥"; // æ²¡æœ‰ä¸‹åˆ’çº¿
 
-    size_t lastUnderscore = folderName.rfind(L'_');
-    if (firstUnderscore != lastUnderscore)
-        return L"æœªçŸ¥"; // å¤šä¸ªä¸‹åˆ’çº¿
-
-    if (firstUnderscore + 1 >= folderName.size())
-        return L"æœªçŸ¥"; // ä¸‹åˆ’çº¿åœ¨æœ«å°¾
-
-    // è¿”å›ä¸‹åˆ’çº¿åçš„éƒ¨åˆ†
-    return folderName.substr(firstUnderscore + 1);
-}
 
 std::wstring GetCurrentExeFolder()
 {
@@ -360,35 +357,35 @@ std::wstring GetCurrentExeFolder()
     DWORD len = GetModuleFileNameW(NULL, buffer, MAX_PATH);
     if (len == 0 || len == MAX_PATH)
     {
-        return L""; // è·å–å¤±è´¥
+        return L""; // »ñÈ¡Ê§°Ü
     }
 
     std::wstring path(buffer);
-    // æ‰¾æœ€åä¸€ä¸ªæ–œæ 
+    // ÕÒ×îºóÒ»¸öĞ±¸Ü
     size_t pos = path.find_last_of(L"\\/");
     if (pos != std::wstring::npos)
-        return path.substr(0, pos); // è¿”å›ç›®å½•
+        return path.substr(0, pos); // ·µ»ØÄ¿Â¼
     else
-        return L""; // ä¸å­˜åœ¨æ–œæ ï¼Œè¿”å›ç©º
+        return L""; // ²»´æÔÚĞ±¸Ü£¬·µ»Ø¿Õ
 }
 
 bool IsAlreadyRunning()
 {
-    // åˆ›å»ºä¸€ä¸ªå…¨å±€äº’æ–¥ä½“
+    // ´´½¨Ò»¸öÈ«¾Ö»¥³âÌå
     HANDLE hMutex = CreateMutexW(NULL, FALSE, L"MyUniqueAppMutexName_12345");
     if (hMutex == NULL)
     {
-        // åˆ›å»ºå¤±è´¥ï¼Œè®¤ä¸ºç¨‹åºä¸å¯è¿è¡Œ
+        // ´´½¨Ê§°Ü£¬ÈÏÎª³ÌĞò²»¿ÉÔËĞĞ
         return true;
     }
 
     if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
-        // äº’æ–¥ä½“å·²å­˜åœ¨ â†’ å·²ç»æœ‰å®ä¾‹è¿è¡Œ
+        // »¥³âÌåÒÑ´æÔÚ ¡ú ÒÑ¾­ÓĞÊµÀıÔËĞĞ
         CloseHandle(hMutex);
         return true;
     }
 
-    // äº’æ–¥ä½“åˆ›å»ºæˆåŠŸï¼Œå½“å‰æ˜¯å”¯ä¸€å®ä¾‹
+    // »¥³âÌå´´½¨³É¹¦£¬µ±Ç°ÊÇÎ¨Ò»ÊµÀı
     return false;
 }

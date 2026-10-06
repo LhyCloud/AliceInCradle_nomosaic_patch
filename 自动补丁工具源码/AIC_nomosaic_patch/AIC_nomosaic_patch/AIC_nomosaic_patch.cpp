@@ -5,6 +5,8 @@
 #include "AIC_nomosaic_patch.h"
 #include "NET_SDK.h"
 #include "define.h"
+#include "version.h"
+#include "CheatWindow.h"
 #include <windows.h>
 #include <shellapi.h>
 #include <fstream>
@@ -128,7 +130,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 将实例句柄存储在全局变量中
 
-   hWnd = CreateWindowW(szWindowClass, L"Alice In Cradle 补丁工具 v1.1.2"/*szTitle*/, WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX,
+   hWnd = CreateWindowW(szWindowClass, L"Alice In Cradle 补丁工具 v1.2.0"/*szTitle*/, WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX,
       CW_USEDEFAULT, 0, 500, 420, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
@@ -218,12 +220,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             160, 120, 300, 80, hWnd, (HMENU)ID_ver,
             ((LPCREATESTRUCT)lParam)->hInstance, NULL);
         SendMessage(Static5, WM_SETFONT, (WPARAM)hFont, MAKELPARAM(TRUE, 0));
-        HWND button = CreateWindow(L"BUTTON", L"安装去码补丁",
+        HWND button = CreateWindow(L"BUTTON", L"安装去马补丁",
             /*WS_TABSTOP |*/ WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE/*换行样式*/ | WS_DISABLED,
             57, 210, 160, 40, hWnd, (HMENU)IDM_test,
             ((LPCREATESTRUCT)lParam)->hInstance, NULL);
         SendMessage(button, WM_SETFONT, (WPARAM)hFont, MAKELPARAM(TRUE, 0));
-        HWND button3 = CreateWindow(L"BUTTON", L"卸载去码补丁",
+        HWND button3 = CreateWindow(L"BUTTON", L"卸载去马补丁",
             /*WS_TABSTOP |*/ WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE/*换行样式*/| WS_DISABLED,
             257, 210, 160, 40, hWnd, (HMENU)IDM_test2,
             ((LPCREATESTRUCT)lParam)->hInstance, NULL);
@@ -271,11 +273,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
             case IDM_ABOUT:
                 //DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                ShellExecute(NULL, L"open", L"https://github.com/YXC-Lhy/AliceInCradle_nomosaic_patch",
+                ShellExecute(NULL, L"open", L"https://github.com/YXC-Lhy/AliceInCradle_nomosaic_patch/releases",
                     NULL, NULL, SW_SHOWNORMAL);
                 break;
             case ID_32772:
-                MessageBox(hWnd, L"补丁工具版本：v1.1.2\n发布日期：2026年5月15日\n兼容游戏版本：已发布的所有版本及未来版本\n编译器：VS2019（ C++ 17 、.NET Framework 4.7.2）", L"版本信息", MB_OK | MB_ICONINFORMATION);
+                MessageBox(hWnd, L"补丁工具版本：v1.2.0\n发布日期：2026年10月6日\n兼容游戏版本：已发布的所有版本及未来版本\n编译器：VS2019（ C++ 17 、.NET Framework 4.7.2）\n使用dnlib 4.5.0", L"版本信息", MB_OK | MB_ICONINFORMATION);
                 break;
             case ID_32771:
                 ShellExecute(NULL, L"open", L"https://github.com/YXC-Lhy/AliceInCradle_nomosaic_patch/blob/main/README.md",
@@ -355,6 +357,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     //MessageBox(hWnd, L"选择不能为空", L"提示", MB_OK | MB_ICONWARNING);
                 }
             }break;
+            case ID_32773:
+            {
+                if (GamePath == L"") {
+                    MessageBox(hWnd, L"请先选择游戏目录。", L"错误", MB_OK | MB_ICONWARNING);
+                    break;
+                }
+                else {
+                
+                    ShowCheatSettings();
+                }
+            }
+            break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }

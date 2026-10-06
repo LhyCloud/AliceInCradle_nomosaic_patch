@@ -33,6 +33,15 @@
     <ClInclude Include="define.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="version.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CheatWindow.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="debug_config.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AIC_nomosaic_patch.cpp">

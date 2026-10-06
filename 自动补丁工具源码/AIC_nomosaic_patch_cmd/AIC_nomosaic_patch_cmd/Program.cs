@@ -165,6 +165,43 @@ namespace AIC_nomosaic_patch_cmd
                 // 保存 DLL
                 // -----------------------
                 module.Write(outPath);
+
+                // -----------------------
+                // 校验：重新读取生成的文件，确认该位置已是新值
+                // -----------------------
+                bool verified = false;
+                try
+                {
+                    var checkModule = ModuleDefMD.Load(outPath);
+                    var checkType = checkModule.Types.FirstOrDefault(t => t.Name == "MosaicShower");
+                    var checkMethod = checkType == null ? null : checkType.Methods.FirstOrDefault(m => m.Name == "FnDrawMosaic");
+                    if (checkMethod != null && checkMethod.HasBody)
+                    {
+                        var checkInstrs = checkMethod.Body.Instructions;
+
+                        // 同样取最后一个 ret，检查其前一条指令是否为期望的新值
+                        for (int i = checkInstrs.Count - 1; i >= 1; i--)
+                        {
+                            if (checkInstrs[i].OpCode == OpCodes.Ret)
+                            {
+                                var checkPrev = checkInstrs[i - 1];
+                                verified = (targetValue.Value && checkPrev.OpCode == OpCodes.Ldc_I4_1)
+                                        || (!targetValue.Value && checkPrev.OpCode == OpCodes.Ldc_I4_0);
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    verified = false;
+                }
+                if (!verified)
+                {
+                    Console.WriteLine("修改失败: 校验不通过");
+                    return;
+                }
+
                 Console.WriteLine("TRUE");
             }
             catch (Exception ex)
