@@ -277,7 +277,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     NULL, NULL, SW_SHOWNORMAL);
                 break;
             case ID_32772:
-                MessageBox(hWnd, L"补丁工具版本：v1.2.0\n发布日期：2026年10月6日\n兼容游戏版本：已发布的所有版本及未来版本\n编译器：VS2019（ C++ 17 、.NET Framework 4.7.2）\n使用dnlib 4.5.0", L"版本信息", MB_OK | MB_ICONINFORMATION);
+                MessageBox(hWnd, L"补丁工具版本：v1.2.0\n发布日期：2026年10月6日\n兼容游戏版本：AIC ver0.21和0.21之后的所有版本\n已测试0.21-0.30均可用\n编译器：VS2019（ C++ 17 、.NET Framework 4.7.2）\n使用dnlib 4.5.0", L"版本信息", MB_OK | MB_ICONINFORMATION);
                 break;
             case ID_32771:
                 ShellExecute(NULL, L"open", L"https://github.com/YXC-Lhy/AliceInCradle_nomosaic_patch/blob/main/README.md",
