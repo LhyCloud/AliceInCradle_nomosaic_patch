@@ -2,13 +2,17 @@
 
 Alice In Cradle(AIC)（摇篮里的爱丽丝）去除马赛克补丁 
 
-## 自动全版本补丁安装工具（推荐） 
-适配所有旧版本和未来新版本
-下载工具，放到游戏主程序AliceInCradle.exe所在的目录运行（放在游戏目录可自动识别，也可以放在任意位置手动选择游戏目录），选择安装补丁，等待5-10s即可安装成功 
+## 自动全版本补丁安装工具
+适配所有旧版本和未来新版本  
+ - 下载工具，放到游戏主程序AliceInCradle.exe所在的目录运行（放在游戏目录可自动识别，也可以放在任意位置手动选择游戏目录）  
+ - 选择安装补丁，等待5-10s即可安装成功 
  
 <img width="486" height="413" alt="image" src="https://github.com/user-attachments/assets/2a32b8af-1b0f-4518-889b-d6ebb7af2015" />
 
- 
+ - 点击游戏调试设置可快速修改debug设置  
+<img width="387" height="315" alt="image" src="https://github.com/user-attachments/assets/9d351c1d-0834-4cea-9c8e-a49e289b211b" />
+
+   
 ## 自动补丁工具原理 
 使用dnlib修改FnDrawMosaic返回值实现补丁 
 
