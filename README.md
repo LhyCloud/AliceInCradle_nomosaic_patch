@@ -13,8 +13,18 @@ Alice In Cradle(AIC)（摇篮里的爱丽丝）去除马赛克补丁
 <img width="387" height="315" alt="image" src="https://github.com/user-attachments/assets/9d351c1d-0834-4cea-9c8e-a49e289b211b" />
 
    
-## 自动补丁工具原理 
-使用dnlib修改FnDrawMosaic返回值实现补丁 
+## 实现原理  
+1.自动补丁工具原理 
+ - 根据路径定位Assembly-CSharp.dll 
+ - 使用dnlib修改FnDrawMosaic返回值实现补丁
+
+2.版本检测  
+ - 读取文件夹名称
+ - 读取游戏文件globalgamemanagers
+
+3.调试设置  
+ - 解析_debug.txt
+ - 修改键值
 
 ## 手动安装方法（不推荐） 
-下载对应版本补丁压缩包，解压后覆盖游戏里的 Assembly-CSharp.dll 文件
+下载对应版本补丁压缩包，解压后覆盖游戏里的 Assembly-CSharp.dll 文件（已停止支持，新版本请使用自动补丁工具！）
