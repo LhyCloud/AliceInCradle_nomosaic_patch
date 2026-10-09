@@ -1,18 +1,13 @@
 #pragma once
 // ===========================================================================
-//  game_version.h  —— 读取 Unity 游戏版本号（header-only，零第三方依赖）
+//  读取游戏版本号
 // ===========================================================================
-//
-//  用法:
 //      #include "game_version.h"
 //      std::wstring ver = GetGameVersionFromFolder(L"D:\\Games\\AliceInCradle");
 //      if (!ver.empty()) { /* ver == L"0.29b" */ }
 //
-//  约定:
 //      * 传入游戏根目录，内部固定拼 <根目录>\AliceInCradle_Data\globalgamemanagers
 //      * 取到返回版本号；任何情况取不到都返回空 wstring
-//      * 全程不抛异常、不写 stdout/stderr、不调用 exit/abort
-//      * 所有读取都做边界检查，畸形/截断/伪造文件只返回空，不会越界崩溃
 //
 //  原理: 版本号来自 globalgamemanagers (Unity SerializedFile) 里 PlayerSettings 对象的
 //        bundleVersion 字段 —— 即运行时 Application.version。本头文件解析容器结构来

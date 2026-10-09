@@ -129,8 +129,16 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 将实例句柄存储在全局变量中
+   //SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);//取消使用系统缩放
+   // 解决缩放像素化问题
+   //SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED);//解决缩放像素化问题，下方代码用于兼容win7
+   typedef DPI_AWARENESS_CONTEXT(WINAPI* PFN_SetThreadDpiAwarenessContext)(DPI_AWARENESS_CONTEXT);
+   PFN_SetThreadDpiAwarenessContext pSetThreadCtx = (PFN_SetThreadDpiAwarenessContext)GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetThreadDpiAwarenessContext");
+   if (pSetThreadCtx)      // Win10 1607+ 才有；Win7/8.1 上是 NULL
+       pSetThreadCtx(DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED);
 
-   hWnd = CreateWindowW(szWindowClass, L"Alice In Cradle 补丁工具 v1.2.0"/*szTitle*/, WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX,
+   //创建主窗口
+   hWnd = CreateWindowW(szWindowClass, L"Alice In Cradle 补丁工具 v1.2.1"/*szTitle*/, WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX,
       CW_USEDEFAULT, 0, 500, 420, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
@@ -273,14 +281,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
             case IDM_ABOUT:
                 //DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                ShellExecute(NULL, L"open", L"https://github.com/YXC-Lhy/AliceInCradle_nomosaic_patch/releases",
+                ShellExecute(NULL, L"open", L"https://github.com/LhyCloud/AliceInCradle_nomosaic_patch/releases",
                     NULL, NULL, SW_SHOWNORMAL);
                 break;
             case ID_32772:
-                MessageBox(hWnd, L"补丁工具版本：v1.2.0\n发布日期：2026年10月6日\n兼容游戏版本：AIC ver0.21和0.21之后的所有版本\n已测试0.21-0.30均可用\n编译器：VS2019（ C++ 17 、.NET Framework 4.7.2）\n使用dnlib 4.5.0", L"版本信息", MB_OK | MB_ICONINFORMATION);
+                MessageBox(hWnd, L"补丁工具版本：v1.2.1\n发布日期：2026年10月9日\n兼容游戏版本：AIC ver0.21和0.21之后的所有版本\n已测试0.21-0.30均可用\n编译器：VS2019（ C++ 17 、.NET Framework 4.7.2）\n使用dnlib 4.5.0", L"版本信息", MB_OK | MB_ICONINFORMATION);
                 break;
             case ID_32771:
-                ShellExecute(NULL, L"open", L"https://github.com/YXC-Lhy/AliceInCradle_nomosaic_patch/blob/main/README.md",
+                ShellExecute(NULL, L"open", L"https://github.com/LhyCloud/AliceInCradle_nomosaic_patch/blob/main/README.md",
                     NULL, NULL, SW_SHOWNORMAL);
                 break;
             case IDM_test:{

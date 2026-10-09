@@ -1,4 +1,3 @@
-
 #pragma once
 #ifndef CHEAT_SETTINGS_WINDOW_H
 #define CHEAT_SETTINGS_WINDOW_H
@@ -25,17 +24,9 @@ extern HWND CHEAT_SETTINGS_MAIN_WINDOW;
 #ifndef CHEAT_SETTINGS_TEXT_TITLE
 #define CHEAT_SETTINGS_TEXT_TITLE  L"游戏调试设置"   // 游戏作弊设置
 #endif
-#ifndef CHEAT_SETTINGS_TEXT_OK
-#define CHEAT_SETTINGS_TEXT_OK     L"\u786E\u5B9A"                            // 确定
-#endif
-#ifndef CHEAT_SETTINGS_TEXT_CANCEL
-#define CHEAT_SETTINGS_TEXT_CANCEL L"\u53D6\u6D88"                            // 取消
-#endif
-
 
 #define CHEAT_SETTINGS_WIDTH       400
 #define CHEAT_SETTINGS_HEIGHT      320
-
 
 #define CHEAT_SETTINGS_ID_OK       0x7F01
 #define CHEAT_SETTINGS_ID_CANCEL   0x7F02
