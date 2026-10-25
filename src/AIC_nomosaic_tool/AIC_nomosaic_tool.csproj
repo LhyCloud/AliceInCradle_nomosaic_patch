@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- 让 MSBuild 在 AIC_nomosaic_tool.exe.config 里自动生成
+       bindingRedirect（System.Memory 4.0.1.2→4.0.1.1 等），
+       避免 Windows 上 "FileNotFoundException: System.Memory 4.0.1.2" -->
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <RootNamespace>AicNoMosaic</RootNamespace>
+    <AssemblyName>AIC_nomosaic_tool</AssemblyName>
+    <Version>2.0.0</Version>
+    <Product>Alice In Cradle 去马赛克补丁工具</Product>
+    <Description>Alice In Cradle 去马赛克补丁工具（C# WinForms 单文件重写版）</Description>
+    <LangVersion>7.3</LangVersion>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <!-- 关键优化 #17：dnlib 以嵌入式资源随主程序发布，运行时从内存加载 -->
+    <!-- 目标 net48 的原因：Win10/11 系统自带 .NET Framework 4.8，玩家双击即用、零运行时安装；
+         若改用 net10.0-windows 则用户必须额外安装 .NET 10 Desktop Runtime，或自包含发布 100MB+。
+         注意：构建 SDK 可以是任意新版 dotnet（含 .NET 10），SDK 版本与目标框架无关 -->
+    <!-- 在 Linux/macOS 上也能构建（ reference assemblies from NuGet ） -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <!-- net48 运行时不内化 System.Memory.dll（4.7.1+ 仅内化 Buffers/Vectors/Unsafe 的转发），
+         Span 方案需要垫片随包，实测 ExcludeAssets=runtime 会 FileNotFoundException。
+         GameVersion 现用纯 byte[]+手写端序实现，不再需要 System.Memory → 不引用 -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <!-- 编译时引用 + 运行时内存加载 + 随程序发布，三合一 -->
+    <Reference Include="dnlib">
+      <HintPath>third_party\dnlib.dll</HintPath>
+    </Reference>
+    <EmbeddedResource Include="third_party\dnlib.dll" LogicalName="dnlib.dll" />
+    <None Include="third_party\dnlib.LICENSE.txt" />
+  </ItemGroup>
+
+  <!-- 只为构建顺序服务：保证 bepinex 插件产物先于本工具编译
+       （ReferenceOutputAssembly=false → 不引用类型、不复制输出文件） -->
+  <ItemGroup>
+    <ProjectReference Include="..\AIC_nomosaic_bepinex\AIC_nomosaic_bepinex.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- BepInEx 插件随主工具单文件发布：执行期（Compile/资源清单定稿前）收集
+       bepinex 产物并嵌入为资源。不能用静态 ItemGroup Include —— 冷构建时
+       bin/ 尚无产物，评估期会静默丢资源 -->
+  <Target Name="EmbedBepInExPlugin" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <EmbeddedResource
+        Include="..\AIC_nomosaic_bepinex\bin\$(Configuration)\net48\AIC_nomosaic_bepinex.dll"
+        LogicalName="AIC_nomosaic_bepinex.dll" />
+    </ItemGroup>
+  </Target>
+
+</Project>

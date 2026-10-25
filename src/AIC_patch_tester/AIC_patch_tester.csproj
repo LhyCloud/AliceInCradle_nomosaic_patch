@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AicPatchTester</RootNamespace>
+    <AssemblyName>AIC_patch_tester</AssemblyName>
+    <Version>1.0.0</Version>
+    <LangVersion>7.3</LangVersion>
+    <Nullable>disable</Nullable>
+    <!-- 与工具复用同一份 MosaicPatcher 源码（Compile Link 引入），
+         在 Linux/CI 上即可对真实游戏 DLL 验证补丁定位与翻转逻辑 -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 注意文件名必须是 dnlib.dll（程序集名 dnlib，按名字探测加载） -->
+    <Reference Include="dnlib">
+      <HintPath>third_party\dnlib.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\AIC_nomosaic_tool\MosaicPatcher.cs" Link="MosaicPatcher.cs" />
+    <Compile Include="..\AIC_nomosaic_tool\DebugConfig.cs" Link="DebugConfig.cs" />
+    <Compile Include="..\AIC_nomosaic_tool\GameVersion.cs" Link="GameVersion.cs" />
+    <Compile Include="..\AIC_nomosaic_tool\ShaManifest.cs" Link="ShaManifest.cs" />
+    <Compile Include="..\AIC_nomosaic_tool\BepInExDeployer.cs" Link="BepInExDeployer.cs" />
+  </ItemGroup>
+
+</Project>

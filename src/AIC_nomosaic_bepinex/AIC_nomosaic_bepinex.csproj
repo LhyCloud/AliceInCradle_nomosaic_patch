@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    重要：插件的目标框架不能高于 net48/netstandard2.1 ——
+    它要被游戏内的 Unity Mono 运行时加载，.NET 8/10 程序集 Mono 无法载入。
+    游戏为 Unity 2022.3（Mono，ApiLevel netstandard2.1）+ BepInEx 5.4.22。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>AIC_nomosaic_bepinex</AssemblyName>
+    <RootNamespace>AicNoMosaic.BepInEx</RootNamespace>
+    <Version>2.3.0</Version>
+    <Description>Alice In Cradle 去马赛克 BepInEx 运行时插件（HarmonyX，游戏更新免重装；单点精准定位+LogInfo 诊断+AssemblyResolve 自动补装配；注入后游戏内显示状态横幅）</Description>
+    <LangVersion>7.3</LangVersion>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 编译期引用：运行时由游戏的 BepInEx 目录提供，不随插件复制。
+         BepInEx.Core 稳定包在官方 feed 上最高到 5.4.21（5.4.22 仅 flatcontainer 存在、
+         注册表未列出），5.4.21 与 BepInEx 5.4.22 运行时二进制完全兼容 -->
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" PrivateAssets="all" />
+    <!-- 编译期 UnityEngine（BepInEx 官方 feed 的引擎 API 存根包，仅编译、不随插件发布；
+       运行时由游戏内真实引擎程序集提供）。BepInEx 5 当年针对 Unity 5.x API 构建，
+       引用同代 5.6.1 与 BaseUnityPlugin 继承链完全匹配 -->
+    <PackageReference Include="UnityEngine" Version="5.6.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

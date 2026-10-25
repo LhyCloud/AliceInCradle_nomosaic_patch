@@ -1,0 +1,62 @@
+name: build
+
+on:
+  push:
+    branches: [ main, modernization ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # —— C# WinForms 单文件工具（net48；构建 SDK 与目标框架无关）——
+      - name: Build AIC_nomosaic_tool
+        run: dotnet build src/AIC_nomosaic_tool -c Release
+
+      # —— BepInEx/Harmony 插件（net48，被 Unity Mono 加载）——
+      - name: Build AIC_nomosaic_bepinex
+        run: dotnet build src/AIC_nomosaic_bepinex -c Release
+
+      # —— 补丁逻辑验证器（net10）——
+      - name: Build tester
+        run: dotnet build src/AIC_patch_tester -c Release
+
+      # —— 对仓库内真实补丁 DLL 跑 IL 定位/翻转/幂等验证 ——
+      - name: Extract legacy patched DLLs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force testdlls | Out-Null
+          Expand-Archive "legacy/patches/Win_ver027/nomosaic_ver027b.zip" testdlls/ver027b
+          Expand-Archive "legacy/patches/Win_ver028/nomosaic_ver028b.zip" testdlls/ver028b
+          Expand-Archive "legacy/patches/Win_ver029/nomosaic_ver029b2.zip" testdlls/ver029b2
+
+      - name: Run tester on real DLLs
+        shell: pwsh
+        run: |
+          dotnet src/AIC_patch_tester/bin/Release/net10.0/AIC_patch_tester.dll testdlls/ver027b/Assembly-CSharp.dll testdlls/ver028b/Assembly-CSharp.dll testdlls/ver029b2/Assembly-CSharp.dll
+
+      # —— 发布产物 + SHA256SUMS（任何人都可一键验证完整性）——
+      - name: Stage artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item src/AIC_nomosaic_tool/bin/Release/net48/AIC_nomosaic_tool.exe dist/
+          Copy-Item src/AIC_nomosaic_bepinex/bin/Release/net48/AIC_nomosaic_bepinex.dll dist/
+          Push-Location dist
+          Get-ChildItem -File | Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Set-Content SHA256SUMS
+          Pop-Location
+          Get-Content dist/SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AIC_nomosaic_release
+          path: dist/
