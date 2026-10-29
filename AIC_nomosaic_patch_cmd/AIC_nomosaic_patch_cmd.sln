@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.36631.11
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIC_nomosaic_patch_cmd", "AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd.csproj", "{762EB903-E8AF-4875-8379-C8A6E09C7851}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{762EB903-E8AF-4875-8379-C8A6E09C7851}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{762EB903-E8AF-4875-8379-C8A6E09C7851}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{762EB903-E8AF-4875-8379-C8A6E09C7851}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{762EB903-E8AF-4875-8379-C8A6E09C7851}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3C8C2FD1-1C88-4FD3-8938-5667BEE6089B}
+	EndGlobalSection
+EndGlobal

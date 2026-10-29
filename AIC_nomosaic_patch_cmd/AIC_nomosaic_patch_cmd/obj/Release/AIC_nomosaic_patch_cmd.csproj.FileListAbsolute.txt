@@ -1,0 +1,10 @@
+D:\Users\User\source\AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd\bin\Release\AIC_nomosaic_patch_cmd.exe.config
+D:\Users\User\source\AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd\bin\Release\AIC_nomosaic_patch_cmd.exe
+D:\Users\User\source\AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd\bin\Release\AIC_nomosaic_patch_cmd.pdb
+D:\Users\User\source\AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd\obj\Release\AIC_nomosaic_patch_cmd.csproj.AssemblyReference.cache
+D:\Users\User\source\AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd\obj\Release\AIC_nomosaic_patch_cmd.csproj.CoreCompileInputs.cache
+D:\Users\User\source\AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd\obj\Release\AIC_nomosaic_patch_cmd.csproj.CopyComplete
+D:\Users\User\source\AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd\obj\Release\AIC_nomosaic_patch_cmd.exe
+D:\Users\User\source\AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd\obj\Release\AIC_nomosaic_patch_cmd.pdb
+D:\Users\User\source\AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd\bin\Release\dnlib.dll
+D:\Users\User\source\AIC_nomosaic_patch_cmd\AIC_nomosaic_patch_cmd\bin\Release\dnlib.xml
