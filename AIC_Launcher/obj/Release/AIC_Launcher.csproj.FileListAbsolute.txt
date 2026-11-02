@@ -1,0 +1,6 @@
+D:\DSH\AIC\源码\AIC_patch\AIC_Launcher\bin\Release\AIC_Launcher.exe.config
+D:\DSH\AIC\源码\AIC_patch\AIC_Launcher\bin\Release\AIC_Launcher.exe
+D:\DSH\AIC\源码\AIC_patch\AIC_Launcher\bin\Release\AIC_Launcher.pdb
+D:\DSH\AIC\源码\AIC_patch\AIC_Launcher\obj\Release\AIC_Launcher.csproj.CoreCompileInputs.cache
+D:\DSH\AIC\源码\AIC_patch\AIC_Launcher\obj\Release\AIC_Launcher.exe
+D:\DSH\AIC\源码\AIC_patch\AIC_Launcher\obj\Release\AIC_Launcher.pdb
