@@ -5,33 +5,14 @@
 // ===========================================================================
 //  虚拟机检测绕过（虚拟补丁）窗口
 // ---------------------------------------------------------------------------
-//  实现 AIC-0.30i-VM-bypass.md 里的整套方案，全部由这个窗口一键完成：
 //
-//   1) 换宿主 exe：把资源里的启动器（IDR_LAUNCHER）写成 <游戏目录>\AliceInCradle.exe
-//      —— 文件名必须还叫 AliceInCradle.exe，Unity 靠 <exe名>_Data 找数据目录。
-//      原版 exe 先备份成 <游戏目录>\_AliceInCradle_shield.exe，卸载时原样还原。
-//      壳（.aic0/.aic1/.aic2）根本不执行，VM 检测 / 反调试 / NtRaiseHardError 全不参与。
+//  用法（窗口写法/尺寸/模态行为与 CheatWindow.h 一致，不需要回传按键）：
 //
-//   2) 托管层两个 IL 补丁：调用 AIC_nomosaic_patch_cmd.exe 的新指令
-//          -vm install   -dll <...>\AliceInCradle_Data\Managed\unsafeAssem.dll
-//          -vm uninstall -dll <同上>
-//      补丁 A  IL_02B9 ldc.i4.0 -> ldc.i4.1（虚拟机判据不再清零 ok 标志）
-//      补丁 B  IL_0219 版本串比较整段短路成 br.s IL_022D（因为 exe 已经换掉了）
-//      输出约定沿用原来的 TRUE / repeat / notfound。
-//
-//   3) 重算哈希清单：打个补丁后 unsafeAssem.dll 的 SHA-256 变了，
-//      调用 ShaRecalcWindow.h 里的 RecalcManifest() 按原格式写回。
-//
-//  用法（窗口写法/尺寸/模态行为与 CheatWindow.h 完全一致，不需要把按键回传给主窗口）：
-//
-//      #include "VmPatchWindow.h"   // 内部已包含 define.h + ShaRecalcWindow.h
+//      #include "VmPatchWindow.h"   // 内部已包含 define.h
 //      ...
 //      ShowAicVmPatchWindow();       // 400x320、居中、模态、微软雅黑
 //
-//  除了 define.h 里的全局变量（GamePath / cmdPath / hWnd），不依赖工程里任何其它文件：
-//  命令行调用、文件占用判断、SHA-256、清单重写都在本文件和 ShaRecalcWindow.h 里。
-//
-//  路径全部用 define.h 里的全局 GamePath 拼出来，存在性由主程序保证，这里不再判断。
+//  除了 define.h 里的全局变量（GamePath / cmdPath / hWnd），不依赖工程里
 // ===========================================================================
 
 #include <windows.h>
@@ -39,20 +20,18 @@
 #include <vector>
 
 #include "define.h"
-#include "ShaRecalcWindow.h"    // SHA-256 + 清单重算（内部已包含 wincrypt.h）
 
 #ifndef IDR_LAUNCHER
 #include "resource.h"           // IDR_LAUNCHER（启动器 exe 的 RT_RCDATA 资源）
 #endif
 
 #define AIC_VM_WINDOW_CLASSNAME     L"AicVmPatch_WindowClass"
-#define AIC_VM_WINDOW_TITLE         L"虚拟机检测绕过"
+#define AIC_VM_WINDOW_TITLE         L"虚拟机检测"
 #define AIC_VM_WINDOW_WIDTH         400
 #define AIC_VM_WINDOW_HEIGHT        320
 
 #define AIC_VM_ID_EXE               9101
 #define AIC_VM_ID_DLL               9102
-#define AIC_VM_ID_HASH              9103
 
 #define AIC_VM_ID_OK                0x7F21   // 安装
 #define AIC_VM_ID_REVERT            0x7F22   // 卸载
@@ -70,9 +49,10 @@ namespace aic_vm_detail
         return GamePath + L"\\AliceInCradle.exe";
     }
 
-    inline std::wstring ShieldPath()
+    // 原版 exe 的备份：AliceInCradle.exe.bak
+    inline std::wstring ExeBackupPath()
     {
-        return GamePath + L"\\_AliceInCradle_shield.exe";
+        return ExePath() + L".bak";
     }
 
     inline std::wstring DllPath()
@@ -80,18 +60,34 @@ namespace aic_vm_detail
         return GamePath + L"\\AliceInCradle_Data\\Managed\\unsafeAssem.dll";
     }
 
+    // 补丁工具写出的中间文件（正常情况下它自己会删，这里再兜一次底）
+    inline std::wstring DllTempPath()
+    {
+        return DllPath() + L".tmp";
+    }
+
     // ------------------------------ 资源 / 写文件 ----------------------------
 
-    inline bool ReadResourceBytes(int id, const wchar_t* type, std::vector<BYTE>& out)
+    inline HRSRC FindOwnResource(int id)
+    {
+        HMODULE mod = ::GetModuleHandleW(nullptr);
+        HRSRC hRes = ::FindResourceW(mod, MAKEINTRESOURCEW(id), RT_RCDATA);
+        if (!hRes)
+            hRes = ::FindResourceW(mod, MAKEINTRESOURCEW(id), L"RT_RCDATA");
+        return hRes;
+    }
+
+    inline bool ReadResourceBytes(int id, std::vector<BYTE>& out)
     {
         out.clear();
 
-        HRSRC hRes = ::FindResourceW(nullptr, MAKEINTRESOURCEW(id), type);
+        HMODULE mod = ::GetModuleHandleW(nullptr);
+        HRSRC hRes = FindOwnResource(id);
         if (!hRes)
             return false;
 
-        const DWORD size = ::SizeofResource(nullptr, hRes);
-        HGLOBAL hData = ::LoadResource(nullptr, hRes);
+        const DWORD size = ::SizeofResource(mod, hRes);
+        HGLOBAL hData = ::LoadResource(mod, hRes);
         if (!hData || size == 0)
             return false;
 
@@ -127,6 +123,29 @@ namespace aic_vm_detail
     inline bool FileExists(const std::wstring& path)
     {
         return ::GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
+    }
+
+    // 文件大小（字节）；失败返回 (ULONGLONG)-1
+    inline ULONGLONG FileSize(const std::wstring& path)
+    {
+        WIN32_FILE_ATTRIBUTE_DATA fad;
+        if (!::GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &fad))
+            return (ULONGLONG)-1;
+        return (static_cast<ULONGLONG>(fad.nFileSizeHigh) << 32) | fad.nFileSizeLow;
+    }
+
+    inline void DeleteQuietly(const std::wstring& path)
+    {
+        if (!FileExists(path))
+            return;
+        ::SetFileAttributesW(path.c_str(), FILE_ATTRIBUTE_NORMAL);
+        ::DeleteFileW(path.c_str());
+    }
+
+    // 收尾：删掉补丁工具可能留下的中间文件（dll 本身不备份，所以没有 .bak 要清）
+    inline void CleanupTemp()
+    {
+        DeleteQuietly(DllTempPath());
     }
 
     // 文件是否被别的进程独占（游戏开着的时候补丁写不进去）
@@ -224,36 +243,52 @@ namespace aic_vm_detail
         return out;
     }
 
-    // ------------------------------ 第 1 步：换 exe --------------------------
+    // ------------------------------ 第 2 步：换 exe --------------------------
 
-    // 返回 false 时 err 里是原因
-    inline bool InstallExe(std::wstring& err)
+    // 只用文件大小判断：启动器只有几百 KB，原版主程序是十几 MB。
+    // 小于 1MB 一律当启动器，其余（含正好 1MB）一律当原版。
+    static const ULONGLONG kLauncherSizeLimit = 1024ULL * 1024ULL;
+
+    inline bool LooksLikeLauncher(const std::wstring& path)
     {
+        const ULONGLONG size = FileSize(path);
+        return size != 0 && size < kLauncherSizeLimit;   // 文件不存在时返回 false
+    }
+
+    // 返回 false 时 err 里是原因；changed 表示这次有没有真的写 exe
+    inline bool InstallExe(std::wstring& err, bool& changed)
+    {
+        changed = false;
+
+        // 先判“是不是已经装过了”：exe 小于 1MB 就是启动器，
+        // 直接算安装完成 —— 不读资源、不碰备份，重复安装不会报找不到资源
+        if (LooksLikeLauncher(ExePath()))
+        {
+            // 备份本身也是启动器的话，等于没有可用的原版，提醒一下
+            if (FileExists(ExeBackupPath()) && LooksLikeLauncher(ExeBackupPath()))
+            {
+                err = L"备份 AliceInCradle.exe.bak 是启动器，没有可用的原版备份";
+                return false;
+            }
+            return true;
+        }
+
         std::vector<BYTE> launcher;
-        if (!ReadResourceBytes(IDR_LAUNCHER, L"RT_RCDATA", launcher))
+        if (!ReadResourceBytes(IDR_LAUNCHER, launcher))
         {
             err = L"资源里找不到启动器（IDR_LAUNCHER），请重新编译本工具";
             return false;
         }
 
-        // 已经换过了就别再备份一次（否则会把启动器当成“原版”备份下来）
-        std::wstring launcherHex, currentHex;
-        const bool isLauncher =
-            aic_sha_detail::Sha256OfMemory(&launcher[0], launcher.size(), launcherHex)
-            && aic_sha_detail::Sha256OfFile(ExePath(), currentHex)
-            && currentHex == launcherHex;
-
-        if (isLauncher)
-            return true;
-
-        if (!FileExists(ShieldPath()))
+        // 当前是原版：以它为准刷新备份。
+        // 卸载后 exe 已还原、或游戏更新换了 exe 时，旧备份可能已经过期，
+        // 这种情况必须覆盖，否则下次卸载会还原成旧版本的 exe。
+        ::SetFileAttributesW(ExePath().c_str(), FILE_ATTRIBUTE_NORMAL);
+        ::SetFileAttributesW(ExeBackupPath().c_str(), FILE_ATTRIBUTE_NORMAL);
+        if (!::CopyFileW(ExePath().c_str(), ExeBackupPath().c_str(), FALSE))
         {
-            ::SetFileAttributesW(ExePath().c_str(), FILE_ATTRIBUTE_NORMAL);
-            if (!::CopyFileW(ExePath().c_str(), ShieldPath().c_str(), FALSE))
-            {
-                err = L"备份原版主程序失败（游戏可能正在运行）";
-                return false;
-            }
+            err = L"备份原版主程序失败（游戏可能正在运行）";
+            return false;
         }
 
         if (!WriteAllBytes(ExePath(), launcher))
@@ -261,27 +296,43 @@ namespace aic_vm_detail
             err = L"写入启动器失败（游戏可能正在运行，或文件被设为只读）";
             return false;
         }
+
+        changed = true;
         return true;
     }
 
-    inline bool RestoreExe(std::wstring& err)
+    // 还原原版 exe；成功后把备份删掉（backupDeleted 给界面提示用）
+    inline bool RestoreExe(std::wstring& err, bool& backupDeleted)
     {
-        if (!FileExists(ShieldPath()))
+        backupDeleted = false;
+
+        if (!FileExists(ExeBackupPath()))
         {
-            err = L"没有找到原版主程序备份 _AliceInCradle_shield.exe";
+            err = L"没有找到原版主程序备份 AliceInCradle.exe.bak";
+            return false;
+        }
+
+        // 备份本身是启动器（小于 1MB）的话，拿来还原等于什么都没做
+        if (LooksLikeLauncher(ExeBackupPath()))
+        {
+            err = L"备份 AliceInCradle.exe.bak 其实是启动器，无法还原";
             return false;
         }
 
         ::SetFileAttributesW(ExePath().c_str(), FILE_ATTRIBUTE_NORMAL);
-        if (!::CopyFileW(ShieldPath().c_str(), ExePath().c_str(), FALSE))
+        if (!::CopyFileW(ExeBackupPath().c_str(), ExePath().c_str(), FALSE))
         {
             err = L"还原主程序失败（游戏可能正在运行）";
             return false;
         }
+
+        // 还原成功，备份用完即删
+        DeleteQuietly(ExeBackupPath());
+        backupDeleted = true;
         return true;
     }
 
-    // ------------------------------ 第 2 步：IL 补丁 -------------------------
+    // ------------------------------ 第 1 步：IL 补丁 -------------------------
 
     enum PatchState
     {
@@ -306,6 +357,9 @@ namespace aic_vm_detail
 
         raw = RunTool(cmd);
 
+        // 不管成败，工具留下的中间文件都清掉
+        CleanupTemp();
+
         if (raw.find("TRUE") != std::string::npos)
             return PatchOk;
         if (raw.find("repeat") != std::string::npos)
@@ -313,15 +367,6 @@ namespace aic_vm_detail
         if (raw.find("notfound") != std::string::npos)
             return PatchNotFound;
         return PatchError;
-    }
-
-    // ------------------------------ 第 3 步：重算哈希 ------------------------
-
-    // 返回：更新条目数；-1 = 失败
-    inline int RecalcHash()
-    {
-        return aic_sha_detail::RecalcManifest(aic_sha_detail::ManifestPath(),
-            aic_sha_detail::DataDir());
     }
 }
 
@@ -338,6 +383,13 @@ namespace aic_vm_ui
     {
         static HWND s_current = nullptr;
         return s_current;
+    }
+
+    // 正在执行安装/卸载：期间禁止关闭窗口
+    inline bool& Busy()
+    {
+        static bool s_busy = false;
+        return s_busy;
     }
 
     inline HWND OwnerOf(HWND hwnd)
@@ -375,6 +427,20 @@ namespace aic_vm_ui
         return ::CreateFontIndirectW(&lf);
     }
 
+    // 前两个勾选框是强制的：点不掉，始终是勾选状态
+    inline void KeepChecked(HWND hwnd, int id)
+    {
+        HWND h = ::GetDlgItem(hwnd, id);
+        if (h && ::IsWindow(h))
+            ::SendMessageW(h, BM_SETCHECK, BST_CHECKED, 0);
+    }
+
+    inline void KeepBothChecked(HWND hwnd)
+    {
+        KeepChecked(hwnd, AIC_VM_ID_EXE);
+        KeepChecked(hwnd, AIC_VM_ID_DLL);
+    }
+
     inline bool IsChecked(HWND hwnd, int id)
     {
         HWND h = ::GetDlgItem(hwnd, id);
@@ -383,28 +449,124 @@ namespace aic_vm_ui
         return ::SendMessageW(h, BM_GETCHECK, 0, 0) == BST_CHECKED;
     }
 
-    // 安装流程（顺序很重要：先换 exe，再打托管层补丁，最后重算哈希）
+    // 进入“执行中”：禁用按钮、把被点的按钮文字改成“正在安装/卸载…”，并禁止关闭
+    inline void BeginBusy(HWND hwnd, int id, const wchar_t* busyText)
+    {
+        Busy() = true;
+
+        HWND hOk = ::GetDlgItem(hwnd, AIC_VM_ID_OK);
+        HWND hRevert = ::GetDlgItem(hwnd, AIC_VM_ID_REVERT);
+        HWND hCancel = ::GetDlgItem(hwnd, AIC_VM_ID_CANCEL);
+
+        if (hOk && ::IsWindow(hOk))
+            ::EnableWindow(hOk, FALSE);
+        if (hRevert && ::IsWindow(hRevert))
+            ::EnableWindow(hRevert, FALSE);
+        if (hCancel && ::IsWindow(hCancel))
+            ::EnableWindow(hCancel, FALSE);
+
+        HWND hBtn = ::GetDlgItem(hwnd, id);
+        if (hBtn && ::IsWindow(hBtn))
+            ::SetWindowTextW(hBtn, busyText);
+
+        HMENU hSys = ::GetSystemMenu(hwnd, FALSE);
+        if (hSys)
+            ::EnableMenuItem(hSys, SC_CLOSE, MF_BYCOMMAND | MF_GRAYED);
+
+        // 后面是同步阻塞的工作，这里强制重画一次，“正在安装…”才能马上看见
+        ::RedrawWindow(hwnd, nullptr, nullptr,
+            RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
+    }
+
+    // 退出“执行中”：按钮文字改回来、按钮恢复可用
+    inline void EndBusy(HWND hwnd, int id, const wchar_t* normalText)
+    {
+        Busy() = false;
+
+        if (!hwnd || !::IsWindow(hwnd))
+            return;
+
+        HWND hBtn = ::GetDlgItem(hwnd, id);
+        if (hBtn && ::IsWindow(hBtn))
+            ::SetWindowTextW(hBtn, normalText);
+
+        HWND hOk = ::GetDlgItem(hwnd, AIC_VM_ID_OK);
+        HWND hRevert = ::GetDlgItem(hwnd, AIC_VM_ID_REVERT);
+        HWND hCancel = ::GetDlgItem(hwnd, AIC_VM_ID_CANCEL);
+
+        if (hOk && ::IsWindow(hOk))
+            ::EnableWindow(hOk, TRUE);
+        if (hRevert && ::IsWindow(hRevert))
+            ::EnableWindow(hRevert, TRUE);
+        if (hCancel && ::IsWindow(hCancel))
+            ::EnableWindow(hCancel, TRUE);
+
+        HMENU hSys = ::GetSystemMenu(hwnd, FALSE);
+        if (hSys)
+            ::EnableMenuItem(hSys, SC_CLOSE, MF_BYCOMMAND | MF_ENABLED);
+
+        ::RedrawWindow(hwnd, nullptr, nullptr,
+            RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
+        ::SetForegroundWindow(hwnd);
+    }
+
+    // 安装流程：先改 dll，成功了才换 exe
     inline void DoInstall(HWND hwnd)
     {
-        const bool doExe = IsChecked(hwnd, AIC_VM_ID_EXE);
-        const bool doDll = IsChecked(hwnd, AIC_VM_ID_DLL);
-        const bool doHash = IsChecked(hwnd, AIC_VM_ID_HASH);
-
-        if (!doExe && !doDll && !doHash)
-        {
-            ::MessageBoxW(hwnd, L"请先勾选要执行的项目。", L"提示", MB_OK | MB_ICONINFORMATION);
+        if (Busy())
             return;
-        }
 
-        ::EnableWindow(hwnd, FALSE);
+        KeepBothChecked(hwnd);
+        BeginBusy(hwnd, AIC_VM_ID_OK, L"正在安装…");
+
         std::wstring log;
         bool ok = true;
 
-        if (doExe)
+        // ------------------ 第 1 步：改 dll ------------------
+        if (aic_vm_detail::IsFileInUse(aic_vm_detail::DllPath()))
+        {
+            ok = false;
+            log += L"unsafeAssem.dll：文件被占用，请先关闭游戏\r\n";
+        }
+        else
+        {
+            std::string raw;
+            const aic_vm_detail::PatchState state = aic_vm_detail::RunDllPatch(false, raw);
+
+            if (state == aic_vm_detail::PatchOk)
+                log += L"unsafeAssem.dll：补丁已写入\r\n";
+            else if (state == aic_vm_detail::PatchRepeat)
+                log += L"unsafeAssem.dll：补丁已存在，未重复写入\r\n";
+            else if (state == aic_vm_detail::PatchNotFound)
+            {
+                ok = false;
+                log += L"unsafeAssem.dll：版本不符，找不到补丁位置（未修改）\r\n";
+            }
+            else
+            {
+                ok = false;
+                log += L"unsafeAssem.dll：调用失败 " + aic_vm_detail::WidenAnsi(raw) + L"\r\n";
+            }
+        }
+
+        // ------------------ 第 2 步：dll 成功后才换 exe ------------------
+        if (!ok)
+        {
+            log += L"主程序：dll 没有改成功，本次不替换 exe\r\n";
+        }
+        else
         {
             std::wstring err;
-            if (aic_vm_detail::InstallExe(err))
-                log += L"主程序：已替换为启动器\r\n";
+            bool changed = false;
+            if (aic_vm_detail::InstallExe(err, changed))
+            {
+                log += changed
+                    ? L"主程序：已替换为启动器\r\n"
+                    : L"主程序：已经是启动器，无需替换\r\n";
+                // 之前就已经是启动器、又没有备份时，这次不会新增备份，提醒一下
+                if (!aic_vm_detail::FileExists(aic_vm_detail::ExeBackupPath()))
+                    log += L"主程序：注意，没有原版备份（原来就是启动器），卸载时无法还原 exe\r\n";
+            }
             else
             {
                 ok = false;
@@ -412,50 +574,8 @@ namespace aic_vm_ui
             }
         }
 
-        if (doDll)
-        {
-            if (aic_vm_detail::IsFileInUse(aic_vm_detail::DllPath()))
-            {
-                ok = false;
-                log += L"unsafeAssem.dll：文件被占用，请先关闭游戏\r\n";
-            }
-            else
-            {
-                std::string raw;
-                const aic_vm_detail::PatchState state = aic_vm_detail::RunDllPatch(false, raw);
-
-                if (state == aic_vm_detail::PatchOk)
-                    log += L"unsafeAssem.dll：补丁 A+B 已写入\r\n";
-                else if (state == aic_vm_detail::PatchRepeat)
-                    log += L"unsafeAssem.dll：补丁已存在，未重复写入\r\n";
-                else if (state == aic_vm_detail::PatchNotFound)
-                {
-                    ok = false;
-                    log += L"unsafeAssem.dll：版本不符，找不到补丁位置（未修改）\r\n";
-                }
-                else
-                {
-                    ok = false;
-                    log += L"unsafeAssem.dll：调用失败 " + aic_vm_detail::WidenAnsi(raw) + L"\r\n";
-                }
-            }
-        }
-
-        if (doHash)
-        {
-            const int n = aic_vm_detail::RecalcHash();
-            if (n < 0)
-            {
-                ok = false;
-                log += L"哈希清单：读写失败\r\n";
-            }
-            else
-            {
-                log += L"哈希清单：已更新 " + std::to_wstring(n) + L" 项\r\n";
-            }
-        }
-
-        ::EnableWindow(hwnd, TRUE);
+        aic_vm_detail::CleanupTemp();
+        EndBusy(hwnd, AIC_VM_ID_OK, L"安装补丁");
 
         if (ok)
             log += L"\r\n安装完成，直接用 AliceInCradle.exe 启动游戏。";
@@ -469,10 +589,15 @@ namespace aic_vm_ui
             ::DestroyWindow(hwnd);
     }
 
-    // 卸载流程：先还原托管层，再还原 exe，最后重算哈希
+    // 卸载流程：先还原 dll，再还原 exe
     inline void DoUninstall(HWND hwnd)
     {
-        ::EnableWindow(hwnd, FALSE);
+        if (Busy())
+            return;
+
+        KeepBothChecked(hwnd);
+        BeginBusy(hwnd, AIC_VM_ID_REVERT, L"正在卸载…");
+
         std::wstring log;
         bool ok = true;
 
@@ -493,7 +618,7 @@ namespace aic_vm_ui
             else if (state == aic_vm_detail::PatchNotFound)
             {
                 ok = false;
-                log += L"unsafeAssem.dll：字节不是已知状态，未做修改\r\n";
+                log += L"unsafeAssem.dll：不是已知状态，未做修改\r\n";
             }
             else
             {
@@ -502,10 +627,19 @@ namespace aic_vm_ui
             }
         }
 
+        // dll 还原成功后才动 exe，和安装保持同一套顺序
+        if (!ok)
+        {
+            log += L"主程序：dll 没有还原成功，本次不还原 exe\r\n";
+        }
+        else
         {
             std::wstring err;
-            if (aic_vm_detail::RestoreExe(err))
-                log += L"主程序：已还原原版 exe\r\n";
+            bool backupDeleted = false;
+            if (aic_vm_detail::RestoreExe(err, backupDeleted))
+                log += backupDeleted
+                ? L"主程序：已还原原版 exe，备份 AliceInCradle.exe.bak 已删除\r\n"
+                : L"主程序：已还原原版 exe\r\n";
             else
             {
                 ok = false;
@@ -513,20 +647,8 @@ namespace aic_vm_ui
             }
         }
 
-        {
-            const int n = aic_vm_detail::RecalcHash();
-            if (n < 0)
-            {
-                ok = false;
-                log += L"哈希清单：读写失败\r\n";
-            }
-            else
-            {
-                log += L"哈希清单：已更新 " + std::to_wstring(n) + L" 项\r\n";
-            }
-        }
-
-        ::EnableWindow(hwnd, TRUE);
+        aic_vm_detail::CleanupTemp();
+        EndBusy(hwnd, AIC_VM_ID_REVERT, L"卸载补丁");
 
         if (ok)
             log += L"\r\n卸载完成，游戏已恢复成原版启动方式。";
@@ -542,9 +664,14 @@ namespace aic_vm_ui
 
     inline void DoClose(HWND hwnd)
     {
-        if (::MessageBoxW(hwnd, L"确定放弃本次操作？", L"提示",
-            MB_OKCANCEL | MB_ICONINFORMATION) == IDOK)
-            ::DestroyWindow(hwnd);
+        if (Busy())
+        {
+            ::MessageBeep(MB_ICONWARNING);
+            return;
+        }
+
+        //if (::MessageBoxW(hwnd, L"确定放弃本次操作？", L"提示",  MB_OKCANCEL | MB_ICONINFORMATION) == IDOK)
+        ::DestroyWindow(hwnd);
     }
 
     inline LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -565,7 +692,16 @@ namespace aic_vm_ui
         case WM_COMMAND:
         {
             // 这里不回传按键给主窗口（用不到），全部在本窗口里处理
-            switch (LOWORD(wParam))
+            const int id = LOWORD(wParam);
+
+            // 前两个勾选框强制勾选，点不掉
+            if (id == AIC_VM_ID_EXE || id == AIC_VM_ID_DLL)
+            {
+                KeepChecked(hwnd, id);
+                return 0;
+            }
+
+            switch (id)
             {
             case AIC_VM_ID_OK:
                 DoInstall(hwnd);
@@ -580,8 +716,22 @@ namespace aic_vm_ui
             return 0;
         }
         case WM_CLOSE:
+            // 执行过程中不接受关闭（含 Alt+F4、标题栏 ×）
+            if (Busy())
+            {
+                ::MessageBeep(MB_ICONWARNING);
+                return 0;
+            }
             DoClose(hwnd);
             return 0;
+        case WM_SYSCOMMAND:
+            // Alt+F4 / 系统菜单里的“关闭”
+            if ((wParam & 0xFFF0) == SC_CLOSE && Busy())
+            {
+                ::MessageBeep(MB_ICONWARNING);
+                return 0;
+            }
+            break;
         case WM_DESTROY:
             if (CurrentWindow() == hwnd)
                 CurrentWindow() = nullptr;
@@ -659,6 +809,7 @@ inline bool ShowAicVmPatchWindow()
         return false;
 
     CurrentWindow() = hwnd;
+    Busy() = false;
 
     const HFONT hFont = MakeFont(12);
     const HFONT hSmall = MakeFont(10);
@@ -670,61 +821,49 @@ inline bool ShowAicVmPatchWindow()
         30, 14, 330, 20, hwnd, nullptr, csInst, nullptr);
     ::SendMessageW(tTitle, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
 
-    HWND cExe = ::CreateWindowW(L"BUTTON",
-        L"替换游戏主程序（备份为 _AliceInCradle_shield.exe）",
+    HWND cDll = ::CreateWindowW(L"BUTTON",
+        L"写入 unsafeAssem.dll 补丁（环境/版本判定）",
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
         25, 45, 350, 22, hwnd,
-        reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_EXE)), csInst, nullptr);
-    ::SendMessageW(cExe, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
-    ::SendMessageW(cExe, BM_SETCHECK, BST_CHECKED, 0);
-
-    HWND cDll = ::CreateWindowW(L"BUTTON",
-        L"写入 unsafeAssem.dll 补丁 A+B（环境/版本判定）",
-        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        25, 70, 350, 22, hwnd,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_DLL)), csInst, nullptr);
     ::SendMessageW(cDll, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
     ::SendMessageW(cDll, BM_SETCHECK, BST_CHECKED, 0);
 
-    HWND cHash = ::CreateWindowW(L"BUTTON",
-        L"完成后重算哈希清单（_sha.txt / hash.txt）",
+    HWND cExe = ::CreateWindowW(L"BUTTON",
+        L"替换游戏主程序（备份为 AliceInCradle.exe.bak）",
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        25, 95, 350, 22, hwnd,
-        reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_HASH)), csInst, nullptr);
-    ::SendMessageW(cHash, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
-    ::SendMessageW(cHash, BM_SETCHECK, BST_CHECKED, 0);
+        25, 70, 350, 22, hwnd,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_EXE)), csInst, nullptr);
+    ::SendMessageW(cExe, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
+    ::SendMessageW(cExe, BM_SETCHECK, BST_CHECKED, 0);
 
     HWND tHint = ::CreateWindowW(L"STATIC",
-        L"安装后请用游戏目录里的 AliceInCradle.exe 启动。\r\n"
-        L"安装/卸载期间窗口卡顿属于正常现象，请勿关闭工具。\r\n"
+        //L"两项固定执行，顺序为：先改 dll，成功后再换 exe。\r\n"
+        //L"dll 原地修改，不生成备份；中间文件用完即删。\r\n"
+        L"安装/卸载期间窗口不可关闭，请等待提示框出现。\r\n"
         L"补丁只作用于当前选中的游戏目录。",
         WS_CHILD | WS_VISIBLE | SS_LEFT,
-        25, 125, 350, 62, hwnd, nullptr, csInst, nullptr);
+        25, 100, 350, 68, hwnd, nullptr, csInst, nullptr);
     ::SendMessageW(tHint, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
 
     HWND tPath = ::CreateWindowW(L"STATIC",
         GamePath.c_str(),
         WS_CHILD | WS_VISIBLE | SS_LEFT | SS_PATHELLIPSIS,
-        25, 190, 350, 20, hwnd, nullptr, csInst, nullptr);
+        25, 172, 350, 20, hwnd, nullptr, csInst, nullptr);
     ::SendMessageW(tPath, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
 
     HWND bInstall = ::CreateWindowW(L"BUTTON", L"安装补丁",
         WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE | BS_DEFPUSHBUTTON,
-        30, 220, 110, 30, hwnd,
+        30, 205, 110, 30, hwnd,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_OK)), csInst, nullptr);
     ::SendMessageW(bInstall, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
 
     HWND bRevert = ::CreateWindowW(L"BUTTON", L"卸载补丁",
         WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE,
-        145, 220, 110, 30, hwnd,
+        145, 205, 110, 30, hwnd,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_REVERT)), csInst, nullptr);
     ::SendMessageW(bRevert, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
 
-    HWND bCancel = ::CreateWindowW(L"BUTTON", L"放弃更改",
-        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE,
-        260, 220, 110, 30, hwnd,
-        reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_CANCEL)), csInst, nullptr);
-    ::SendMessageW(bCancel, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
 
     if (hOwner)
         CenterOnOwner(hwnd, hOwner);
