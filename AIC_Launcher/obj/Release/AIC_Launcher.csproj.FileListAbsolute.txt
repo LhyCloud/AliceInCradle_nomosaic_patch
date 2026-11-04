@@ -4,3 +4,10 @@ D:\DSH\AIC\源码\AIC_patch\AIC_Launcher\bin\Release\AIC_Launcher.pdb
 D:\DSH\AIC\源码\AIC_patch\AIC_Launcher\obj\Release\AIC_Launcher.csproj.CoreCompileInputs.cache
 D:\DSH\AIC\源码\AIC_patch\AIC_Launcher\obj\Release\AIC_Launcher.exe
 D:\DSH\AIC\源码\AIC_patch\AIC_Launcher\obj\Release\AIC_Launcher.pdb
+D:\Users\User\source\AIC_patch\AIC_Launcher\bin\Release\AIC_Launcher.exe.config
+D:\Users\User\source\AIC_patch\AIC_Launcher\bin\Release\AIC_Launcher.exe
+D:\Users\User\source\AIC_patch\AIC_Launcher\bin\Release\AIC_Launcher.pdb
+D:\Users\User\source\AIC_patch\AIC_Launcher\obj\Release\AIC_Launcher.csproj.AssemblyReference.cache
+D:\Users\User\source\AIC_patch\AIC_Launcher\obj\Release\AIC_Launcher.csproj.CoreCompileInputs.cache
+D:\Users\User\source\AIC_patch\AIC_Launcher\obj\Release\AIC_Launcher.exe
+D:\Users\User\source\AIC_patch\AIC_Launcher\obj\Release\AIC_Launcher.pdb

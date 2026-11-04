@@ -41,9 +41,21 @@ namespace aic
 
         private const int SW_SHOWNORMAL = 1;
 
+        // ===== 启动前的提示框（想改文案只改这两行）=====
+        private const uint MB_YESNO = 0x00000004;           // 是/否 两个按钮
+        private const uint MB_ICONINFORMATION = 0x00000040;
+        private const int IDYES = 6;
+        private const string kPromptTitle = "AliceInCradle补丁说明";
+        private const string kPromptText = "此补丁仅供开发者使用，严禁二次分发。\n游戏本体和补丁为免费，若付费获得，请举报商家。\n你是否同意以上规则且已满18岁？";
+
         [STAThread]
         private static int Main(string[] args)
         {
+            // 启动前先问一句：选“否”就直接结束，不加载任何东西
+            if (MessageBoxW(IntPtr.Zero, kPromptText, kPromptTitle,
+                    MB_YESNO | MB_ICONINFORMATION) != IDYES)
+                return 0;
+
             string dir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             if (string.IsNullOrEmpty(dir)) dir = Environment.CurrentDirectory;
             SetCurrentDirectoryW(dir);
