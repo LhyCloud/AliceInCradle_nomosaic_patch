@@ -816,7 +816,7 @@ inline bool ShowAicVmPatchWindow()
     const HINSTANCE csInst = ModuleInstance();
 
     HWND tTitle = ::CreateWindowW(L"STATIC",
-        L"虚拟机检测绕过（虚拟补丁）",
+        L"解除虚拟机检测（虚拟机补丁）",
         WS_CHILD | WS_VISIBLE | SS_LEFT,
         30, 14, 330, 20, hwnd, nullptr, csInst, nullptr);
     ::SendMessageW(tTitle, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
@@ -846,11 +846,11 @@ inline bool ShowAicVmPatchWindow()
         25, 100, 350, 68, hwnd, nullptr, csInst, nullptr);
     ::SendMessageW(tHint, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
 
-    HWND tPath = ::CreateWindowW(L"STATIC",
+    /*HWND tPath = ::CreateWindowW(L"STATIC",
         GamePath.c_str(),
         WS_CHILD | WS_VISIBLE | SS_LEFT | SS_PATHELLIPSIS,
         25, 172, 350, 20, hwnd, nullptr, csInst, nullptr);
-    ::SendMessageW(tPath, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
+    ::SendMessageW(tPath, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));*/
 
     HWND bInstall = ::CreateWindowW(L"BUTTON", L"安装补丁",
         WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE | BS_DEFPUSHBUTTON,

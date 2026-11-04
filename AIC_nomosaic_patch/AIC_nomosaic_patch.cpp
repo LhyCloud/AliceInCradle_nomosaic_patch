@@ -131,7 +131,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
        pSetThreadCtx(DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED);
 
    //创建主窗口
-   hWnd = CreateWindowW(szWindowClass, L"Alice In Cradle 补丁工具 v1.2.1"/*szTitle*/, WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX,
+   hWnd = CreateWindowW(szWindowClass, L"Alice In Cradle 补丁工具 v1.3.0"/*szTitle*/, WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX,
       CW_USEDEFAULT, 0, 500, 420, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
