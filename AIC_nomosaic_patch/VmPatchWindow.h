@@ -306,6 +306,16 @@ namespace aic_vm_detail
     {
         backupDeleted = false;
 
+        if (!LooksLikeLauncher(ExePath()))
+        {
+            if (FileExists(ExeBackupPath()))
+            {
+                DeleteQuietly(ExeBackupPath());
+                backupDeleted = true;
+            }
+            return true;
+        }
+
         if (!FileExists(ExeBackupPath()))
         {
             err = L"没有找到原版主程序备份 AliceInCradle.exe.bak";
@@ -534,9 +544,11 @@ namespace aic_vm_ui
             const aic_vm_detail::PatchState state = aic_vm_detail::RunDllPatch(false, raw);
 
             if (state == aic_vm_detail::PatchOk)
-                log += L"unsafeAssem.dll：补丁已写入\r\n";
+                //log += L"unsafeAssem.dll：补丁已写入\r\n";
+                int a = 1;
             else if (state == aic_vm_detail::PatchRepeat)
-                log += L"unsafeAssem.dll：补丁已存在，未重复写入\r\n";
+                //log += L"unsafeAssem.dll：补丁已存在，未重复写入\r\n";
+                int a = 1;
             else if (state == aic_vm_detail::PatchNotFound)
             {
                 ok = false;
@@ -561,8 +573,8 @@ namespace aic_vm_ui
             if (aic_vm_detail::InstallExe(err, changed))
             {
                 log += changed
-                    ? L"主程序：已替换为启动器\r\n"
-                    : L"主程序：已经是启动器，无需替换\r\n";
+                    ? L"补丁安装成功！\r\n"
+                    : L"已经安装过本补丁！无需重复安装。\r\n";
                 // 之前就已经是启动器、又没有备份时，这次不会新增备份，提醒一下
                 if (!aic_vm_detail::FileExists(aic_vm_detail::ExeBackupPath()))
                     log += L"主程序：注意，没有原版备份（原来就是启动器），卸载时无法还原 exe\r\n";
@@ -570,7 +582,7 @@ namespace aic_vm_ui
             else
             {
                 ok = false;
-                log += L"主程序：" + err + L"\r\n";
+                //log += L"主程序：" + err + L"\r\n";
             }
         }
 
@@ -578,7 +590,7 @@ namespace aic_vm_ui
         EndBusy(hwnd, AIC_VM_ID_OK, L"安装补丁");
 
         if (ok)
-            log += L"\r\n安装完成，直接用 AliceInCradle.exe 启动游戏。";
+            log += L"\r\n安装完成，游戏已支持在虚拟机启动。";
         else
             log += L"\r\n有项目没有完成，详见上面的说明。";
 
@@ -612,9 +624,11 @@ namespace aic_vm_ui
             const aic_vm_detail::PatchState state = aic_vm_detail::RunDllPatch(true, raw);
 
             if (state == aic_vm_detail::PatchOk)
-                log += L"unsafeAssem.dll：补丁已还原\r\n";
+                //log += L"unsafeAssem.dll：补丁已还原\r\n";
+                int a = 1;
             else if (state == aic_vm_detail::PatchRepeat)
-                log += L"unsafeAssem.dll：本来就是原版，无需还原\r\n";
+                //log += L"unsafeAssem.dll：本来就是原版，无需还原\r\n";
+                int a = 1;
             else if (state == aic_vm_detail::PatchNotFound)
             {
                 ok = false;
@@ -638,8 +652,8 @@ namespace aic_vm_ui
             bool backupDeleted = false;
             if (aic_vm_detail::RestoreExe(err, backupDeleted))
                 log += backupDeleted
-                ? L"主程序：已还原原版 exe，备份 AliceInCradle.exe.bak 已删除\r\n"
-                : L"主程序：已还原原版 exe\r\n";
+                ? L"补丁卸载成功，备份 AliceInCradle.exe.bak 已删除\r\n"
+                : L"补丁卸载成功！\r\n";
             else
             {
                 ok = false;
@@ -821,30 +835,16 @@ inline bool ShowAicVmPatchWindow()
         30, 14, 330, 20, hwnd, nullptr, csInst, nullptr);
     ::SendMessageW(tTitle, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
 
-    HWND cDll = ::CreateWindowW(L"BUTTON",
-        L"写入 unsafeAssem.dll 补丁（环境/版本判定）",
-        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        25, 45, 350, 22, hwnd,
-        reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_DLL)), csInst, nullptr);
-    ::SendMessageW(cDll, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
-    ::SendMessageW(cDll, BM_SETCHECK, BST_CHECKED, 0);
-
-    HWND cExe = ::CreateWindowW(L"BUTTON",
-        L"替换游戏主程序（备份为 AliceInCradle.exe.bak）",
-        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        25, 70, 350, 22, hwnd,
-        reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_EXE)), csInst, nullptr);
-    ::SendMessageW(cExe, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
-    ::SendMessageW(cExe, BM_SETCHECK, BST_CHECKED, 0);
-
     HWND tHint = ::CreateWindowW(L"STATIC",
-        //L"两项固定执行，顺序为：先改 dll，成功后再换 exe。\r\n"
-        //L"dll 原地修改，不生成备份；中间文件用完即删。\r\n"
-        L"安装/卸载期间窗口不可关闭，请等待提示框出现。\r\n"
+        L"说明：\r\n"
+        L"解决游戏在虚拟机环境下无法启动问题。\r\n"
+        L"本补丁仅供开发者学习使用。\r\n"
+        L"严禁将本补丁用于违规用途。严禁二次分发。\r\n"
+        L"安装/卸载期间窗口不可关闭，约5s。\r\n"
         L"补丁只作用于当前选中的游戏目录。",
         WS_CHILD | WS_VISIBLE | SS_LEFT,
-        25, 100, 350, 68, hwnd, nullptr, csInst, nullptr);
-    ::SendMessageW(tHint, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
+        30, 50, 350, 130, hwnd, nullptr, csInst, nullptr);
+    ::SendMessageW(tHint, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
 
     /*HWND tPath = ::CreateWindowW(L"STATIC",
         GamePath.c_str(),
@@ -854,13 +854,13 @@ inline bool ShowAicVmPatchWindow()
 
     HWND bInstall = ::CreateWindowW(L"BUTTON", L"安装补丁",
         WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE | BS_DEFPUSHBUTTON,
-        30, 205, 110, 30, hwnd,
+        30, 205, 120, 35, hwnd,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_OK)), csInst, nullptr);
     ::SendMessageW(bInstall, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
 
     HWND bRevert = ::CreateWindowW(L"BUTTON", L"卸载补丁",
         WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE,
-        145, 205, 110, 30, hwnd,
+        215, 205, 120, 35, hwnd,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_VM_ID_REVERT)), csInst, nullptr);
     ::SendMessageW(bRevert, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
 

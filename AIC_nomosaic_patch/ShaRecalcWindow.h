@@ -483,11 +483,11 @@ namespace aic_sha_ui
         }
 
         std::wstring text;
-        text += L"清单：" + manifest + L"\r\n";
+        //text += L"清单：" + manifest + L"\r\n";
         text += L"条目：" + std::to_wstring(entries.size()) +
             L"    不一致：" + std::to_wstring(diff) +
             L"    读不到：" + std::to_wstring(missing) + L"\r\n";
-        text += L"------------------------------------------------------------\r\n";
+        text += L"-------------------------------------------------\r\n";
 
         if (diff == 0 && missing == 0)
             text += L"清单与文件完全一致，不需要重算。\r\n";
@@ -671,7 +671,7 @@ inline bool ShowAicShaRecalcWindow()
     ::SendMessageW(tTitle, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
 
     HWND tDesc = ::CreateWindowW(L"STATIC",
-        L"下面这些文件的 SHA-256 和清单里的值不一致（或读不到）：",
+        L"解决游戏启动时报错游戏文件完整性校验失败。",
         WS_CHILD | WS_VISIBLE | SS_LEFT,
         30, 38, 345, 18, hwnd, nullptr, csInst, nullptr);
     ::SendMessageW(tDesc, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
@@ -679,21 +679,21 @@ inline bool ShowAicShaRecalcWindow()
     HWND hList = ::CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT",
         L"",
         WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL,
-        20, 60, 355, 148, hwnd,
+        20, 60, 345, 148, hwnd,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_SHA_ID_LIST)), csInst, nullptr);
     ::SendMessageW(hList, WM_SETFONT, reinterpret_cast<WPARAM>(hSmall), MAKELPARAM(TRUE, 0));
 
     HWND bOk = ::CreateWindowW(L"BUTTON", L"重算并写入",
-        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE | BS_DEFPUSHBUTTON,
-        30, 220, 130, 30, hwnd,
+        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE ,
+        120, 230, 130, 30, hwnd,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_SHA_ID_OK)), csInst, nullptr);
     ::SendMessageW(bOk, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
 
-    HWND bCancel = ::CreateWindowW(L"BUTTON", L"关闭",
+    /*HWND bCancel = ::CreateWindowW(L"BUTTON", L"关闭",
         WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_MULTILINE,
         220, 220, 130, 30, hwnd,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(AIC_SHA_ID_CANCEL)), csInst, nullptr);
-    ::SendMessageW(bCancel, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));
+    ::SendMessageW(bCancel, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), MAKELPARAM(TRUE, 0));*/
 
     RefreshList(hwnd);
 
