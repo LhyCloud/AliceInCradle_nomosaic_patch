@@ -2,7 +2,7 @@
 
 Alice In Cradle(AIC)（摇篮里的爱丽丝）去除马赛克补丁 
 
-## 自动全版本补丁安装工具
+## 自动全版本补丁安装工具 v1.3.0
 适配所有旧版本和未来新版本  
  - 下载工具，放到游戏主程序AliceInCradle.exe所在的目录运行（放在游戏目录可自动识别，也可以放在任意位置手动选择游戏目录）  
  - 选择安装补丁，等待5-10s即可安装成功 
@@ -11,6 +11,9 @@ Alice In Cradle(AIC)（摇篮里的爱丽丝）去除马赛克补丁
 
  - 点击游戏调试设置可快速修改debug设置  
 <img width="387" height="315" alt="image" src="https://github.com/user-attachments/assets/9d351c1d-0834-4cea-9c8e-a49e289b211b" />
+
+ - 安装虚拟机补丁可绕过虚拟机检测，实现虚拟机游玩（官方不建议在虚拟机游玩，此功能仅供开放爱好者研究使用，严禁用于违规用途）
+ <img width="387" height="318" alt="image" src="https://github.com/user-attachments/assets/3696145e-fd93-4688-9d9e-cae25cab0ee4" />
 
    
 ## 实现原理  
@@ -26,5 +29,9 @@ Alice In Cradle(AIC)（摇篮里的爱丽丝）去除马赛克补丁
  - 解析_debug.txt
  - 修改键值
 
+4.虚拟机补丁
+ - 替换旧启动器（加了虚拟机检测壳）为自制启动器
+ - 修改unsafeAssem.dll里的硬件校验  
+ 
 ## 手动安装方法（不推荐） 
 下载对应版本补丁压缩包，解压后覆盖游戏里的 Assembly-CSharp.dll 文件（已停止支持，新版本请使用自动补丁工具！）
