@@ -1,8 +1,15 @@
-# <img width="32" height="32" alt="image" src="https://github.com/user-attachments/assets/35f4f436-2f92-4e63-861a-59ca35a06d33" /> AliceInCradle_nomosaic_patch
-
+<div align="center">
+<img width="100" alt="image" src="https://github.com/user-attachments/assets/35f4f436-2f92-4e63-861a-59ca35a06d33" /> 
+ 
+# AliceInCradle_nomosaic_patch
 Alice In Cradle(AIC)（摇篮里的爱丽丝）去除马赛克补丁 
+ 
+[![Release](https://img.shields.io/github/v/release/LhyCloud/AliceInCradle_nomosaic_patch?style=flat-square&label=release)](https://github.com/LhyCloud/AliceInCradle_nomosaic_patch/releases/latest) [![Downloads](https://img.shields.io/github/downloads/LhyCloud/AliceInCradle_nomosaic_patch/total?style=flat-square&logo=github)](https://github.com/LhyCloud/AliceInCradle_nomosaic_patch/releases)
 
-## 自动全版本补丁安装工具 v1.3.0
+[功能](#功能) · [实现原理](#实现原理) 
+</div>
+
+## 功能
 适配所有旧版本和未来新版本  
  - 下载工具，放到游戏主程序AliceInCradle.exe所在的目录运行（放在游戏目录可自动识别，也可以放在任意位置手动选择游戏目录）  
  - 选择安装补丁，等待5-10s即可安装成功 
